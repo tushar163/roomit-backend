@@ -7,6 +7,7 @@ const rateLimit = require("express-rate-limit");
 
 const roomRoutes = require("./src/routes/roomRoutes");
 const availabilityRoutes = require("./src/routes/availabilityRoutes");
+const bookingRoutes = require("./src/routes/bookingRoutes");
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -32,7 +33,7 @@ connectDB();
 
 app.use("/api/v1/room", roomRoutes);
 app.use("/api/v1/availability", availabilityRoutes);
-
+app.use("/api/v1/booking", bookingRoutes);
 
 
 const PORT = process.env.PORT || 5000;
