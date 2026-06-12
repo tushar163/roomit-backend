@@ -1,12 +1,12 @@
 require("dotenv").config();
 
 const express = require("express");
-const connectDB = require("./config/db");
+const connectDB = require("./src/config/db");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 
-const roomRoutes = require("./routes/roomRoutes");
-const availabilityRoutes = require("./routes/availabilityRoutes");
+const roomRoutes = require("./src/routes/roomRoutes");
+const availabilityRoutes = require("./src/routes/availabilityRoutes");
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
