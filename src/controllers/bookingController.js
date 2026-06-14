@@ -161,5 +161,17 @@ module.exports = {
                 message: error.message,
             });
         }
+    },
+    getBooking: async (req, res) => {
+        try {
+            const { email } = req.query;
+            const booking = await Booking.find({ "bookedBy.email": email });
+            if (!booking) {
+                return res.status(404).json({ success: false, message: "Booking not found", status: 404 });
+            }
+            res.status(200).json({ success: true, data: booking, message: "Booking retrieved successfully", status: 200 });
+        } catch (error) {
+            res.status(400).json({ success: false, error: error.message, message: "Failed to retrieve booking", status: 400 });
+        }
     }
 };

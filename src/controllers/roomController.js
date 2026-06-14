@@ -11,9 +11,18 @@ module.exports = {
         }
     },
     getAllRooms: async (req, res) => {
+
         try {
-            const rooms = await Roome.find();
-            res.status(200).json({ success: true, data: rooms, message: "Rooms retrieved successfully", status: 200 });
+            if (req.query.id) {
+                const room = await Roome.findById(req.query.id);
+                if (!room) {
+                    return res.status(404).json({ success: false, message: "Room not found", status: 404 });
+                }
+                res.status(200).json({ success: true, data: room, message: "Room retrieved successfully", status: 200 });
+            } else {
+                const rooms = await Roome.find();
+                res.status(200).json({ success: true, data: rooms, message: "Rooms retrieved successfully", status: 200 });
+            }
         } catch (error) {
             res.status(400).json({ success: false, error: error.message, message: "Failed to retrieve rooms", status: 400 });
         }
