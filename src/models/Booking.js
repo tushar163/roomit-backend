@@ -51,6 +51,10 @@ const bookingSchema = new mongoose.Schema(
       ],
       default: "confirmed",
     },
+    cancelledAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

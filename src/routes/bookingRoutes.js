@@ -4,6 +4,7 @@ const router = express.Router();
 const BookingController = require('../controllers/bookingController');
 
 router.post('/bookings', BookingController.createBooking);
+router.delete('/bookings', BookingController.cancelBooking);
 
 module.exports = router;
 
