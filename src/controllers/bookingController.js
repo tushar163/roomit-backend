@@ -3,7 +3,9 @@ const { differenceInHours } = require("date-fns");
 const Booking = require("../models/Booking");
 const BookingSlot = require("../models/BookingSlot");
 
+const Room = require("../models/Room");
 const generateSlots = require("../utils/generateSlots");
+const addBufferSlots = require("../utils/addBufferSlots");
 
 module.exports = {
     createBooking: async (req, res) => {
@@ -173,5 +175,138 @@ module.exports = {
         } catch (error) {
             res.status(400).json({ success: false, error: error.message, message: "Failed to retrieve booking", status: 400 });
         }
-    }
+    },
+    rescheduleBooking: async (req, res) => {
+        const session = await mongoose.startSession();
+
+        session.startTransaction();
+
+        try {
+            const { id } = req.query;
+
+            const {
+                date,
+                startTime,
+                endTime,
+            } = req.body;
+
+            // FIND BOOKING
+            const booking = await Booking.findById(id).session(
+                session
+            );
+
+            if (!booking) {
+                await session.abortTransaction();
+
+                session.endSession();
+
+                return res.status(404).json({
+                    success: false,
+                    message: "Booking not found",
+                });
+            }
+
+            // ONLY CONFIRMED BOOKINGS
+            if (booking.status !== "confirmed") {
+                await session.abortTransaction();
+
+                session.endSession();
+
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "Only confirmed bookings can be rescheduled",
+                });
+            }
+
+            // GET ROOM
+            const room = await Room.findById(
+                booking.room
+            ).session(session);
+
+            if (!room) {
+                await session.abortTransaction();
+
+                session.endSession();
+
+                return res.status(404).json({
+                    success: false,
+                    message: "Room not found",
+                });
+            }
+
+            // DELETE OLD SLOTS
+            await BookingSlot.deleteMany(
+                {
+                    booking: booking._id,
+                },
+                { session }
+            );
+
+            // GENERATE NEW SLOTS
+            let slots = generateSlots(
+                startTime,
+                endTime
+            );
+
+            // ADD BUFFER
+            slots = addBufferSlots(
+                slots,
+                room.bufferTime
+            );
+
+            // PREPARE SLOT DOCS
+            const slotDocs = slots.map((slot) => ({
+                room: booking.room,
+                booking: booking._id,
+                date,
+                slotStart: slot.slotStart,
+                slotEnd: slot.slotEnd,
+                isBuffer: slot.isBuffer || false,
+            }));
+
+            // INSERT NEW SLOTS
+            // UNIQUE INDEX WILL HANDLE CONFLICTS
+            await BookingSlot.insertMany(slotDocs, {
+                session,
+            });
+
+            // UPDATE BOOKING
+            booking.date = date;
+            booking.startTime = startTime;
+            booking.endTime = endTime;
+
+            await booking.save({ session });
+
+            // COMMIT
+            await session.commitTransaction();
+
+            session.endSession();
+
+            return res.status(200).json({
+                success: true,
+                message:
+                    "Booking rescheduled successfully",
+                data: booking,
+            });
+        } catch (error) {
+            await session.abortTransaction();
+
+            session.endSession();
+
+            // SLOT CONFLICT
+            if (error.code === 11000) {
+                return res.status(409).json({
+                    success: false,
+                    message:
+                        "Selected slot is already booked",
+                });
+            }
+
+            return res.status(500).json({
+                success: false,
+                message: error.message,
+            });
+        }
+    },
 };

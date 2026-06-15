@@ -60,5 +60,16 @@ const bookingSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+bookingSchema.index(
+  {
+    room: 1,
+    date: 1,
+    startTime: 1,
+    endTime: 1,
+  },
+  {
+    unique: true,
+  }
+);
 
 module.exports = mongoose.model("Booking", bookingSchema);
